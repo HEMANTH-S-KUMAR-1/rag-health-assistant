@@ -79,7 +79,7 @@ class Retriever:
         results = []
 
         for sq in sub_queries:
-            for r in self.search(sq, top_k=1):
+            for r in self.search(sq, top_k=2):
                 cid = r["chunk"]["id"]
                 if cid not in seen_ids:
                     seen_ids.add(cid)
