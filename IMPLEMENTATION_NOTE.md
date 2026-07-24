@@ -15,7 +15,7 @@ preserving topic boundaries.
 A balanced-redistribution algorithm handles undersized trailing chunks:
 when splitting a long section produces a runt chunk under 200 words, the
 paragraphs in the last two chunks are redistributed more evenly at the
-closest paragraph boundary. Result: 11 chunks, 236–434 words, all within
+closest paragraph boundary. Result: 19 chunks, 209–391 words, all within
 the 200–500 target band.
 
 ### Embedding model: all-mpnet-base-v2 (sentence-transformers)
@@ -32,7 +32,7 @@ quality trade-off favours the larger model.
 
 ### Storage/index for embeddings
 NumPy `.npz` compressed arrays on local disk (`index/embeddings.npz`).
-At 11 chunks × 768 dimensions, a dedicated vector database (FAISS, Chroma,
+At 19 chunks × 768 dimensions, a dedicated vector database (FAISS, Chroma,
 Pinecone) would be pure overhead — brute-force cosine similarity over
 this matrix is sub-millisecond. The storage format is standard, portable,
 and readable by any NumPy installation. This would need to change if the
@@ -90,7 +90,7 @@ web UI.
 2. **Chunk overlap**: add 1–2 sentence overlap between adjacent chunks
    from the same section, so information that spans a paragraph boundary
    isn't lost.
-3. **Streaming answers**: switch from synchronous API calls to Claude's
+3. **Streaming answers**: switch from synchronous API calls to Gemini's
    streaming API so the web UI can display answers token-by-token, giving
    a more responsive feel.
 4. **Unit tests**: add pytest-based tests for each pipeline stage

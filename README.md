@@ -37,7 +37,7 @@ data/raw_page.md  --ingest.py-->  data/chunks.json  --embed_store.py-->  index/e
   breaking a paragraph mid-sentence.
 - Undersized trailing chunks are rebalanced with the preceding chunk using
   an even-split algorithm, keeping both chunks within the 200–500 band.
-- Result: 11 chunks, word counts ranging 236–434 (all within the 200–500
+- Result: 19 chunks, word counts ranging 209–391 (all within the 200–500
   target band).
 
 Run: `python src/ingest.py`
@@ -49,7 +49,7 @@ Run: `python src/ingest.py`
   handles paraphrased queries well (unlike TF-IDF, which is lexical only).
 - **Storage**: normalised embedding vectors stored as compressed NumPy arrays
   (`index/embeddings.npz`) — no external vector database is needed at this
-  scale (11 chunks). Brute-force cosine similarity over an 11×768 matrix
+  scale (19 chunks). Brute-force cosine similarity over a 19×768 matrix
   is sub-millisecond.
 - **Search**: the question is encoded with the same model, then ranked
   against all chunk vectors by cosine similarity
@@ -58,14 +58,14 @@ Run: `python src/ingest.py`
   AB-PMJAY and PM-ABHIM") are detected and split into sub-queries, with
   top-1 retrieved for each entity, then combined.
 - **Optional LLM re-ranking**: with `--rerank`, the CLI retrieves a broader
-  pool of candidates and asks Claude to re-score them for relevance,
+  pool of candidates and asks Gemini to re-score them for relevance,
   improving precision at k=3.
 
 Run: `python src/embed_store.py`
 
 ## 3. RAG answer generation (`src/generate.py`)
 
-- LLM: Google Gemini API (`gemini-1.5-flash`, via `google-genai` SDK).
+- LLM: Google Gemini API (`gemini-flash-lite-latest`, via `google-generativeai` SDK).
 - The prompt includes: a system instruction constraining the model to
   answer only from the supplied context and say so explicitly if the
   context doesn't contain the answer, plus the user's question and the
@@ -115,8 +115,9 @@ source .venv/bin/activate
 
 pip install -r requirements.txt
 
+# create your .env from the provided example
 cp .env.example .env
-# edit .env and set GEMINI_API_KEY=<your key>
+# edit .env and paste your Gemini API key
 export $(cat .env | xargs)          # Linux / macOS
 # Windows (PowerShell): $env:GEMINI_API_KEY="<your key>"
 
@@ -184,8 +185,15 @@ rag-health-assistant/
 │   ├── app.py            # Flask web UI
 │   └── templates/
 │       └── index.html    # web UI template
+├── scripts/
+│   ├── extract_pdf.py    # one-off: PDF text extraction (local utility)
+│   └── extract_images.py # one-off: OCR via Gemini vision (local utility)
 ├── requirements.txt
 ├── .env.example
 ├── IMPLEMENTATION_NOTE.md
 └── README.md
 ```
+
+> **Note:** `scripts/extract_pdf.py` and `scripts/extract_images.py` are one-off
+> local utilities used to extract and OCR the source PDF into `data/raw_page.md`.
+> They are not part of the runtime pipeline and contain hardcoded local paths.

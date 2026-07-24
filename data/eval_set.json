@@ -31,7 +31,7 @@
   },
   {
     "question": "What is Mission Indradhanush?",
-    "expected_chunk_title": "Mission Indradhanush and Immunisation",
+    "expected_chunk_title": "Mission Indradhanush / U-WIN",
     "type": "exact"
   },
   {
@@ -61,7 +61,7 @@
   },
   {
     "question": "child vaccination and immunization drive to reach unvaccinated kids",
-    "expected_chunk_title": "Mission Indradhanush and Immunisation",
+    "expected_chunk_title": "Mission Indradhanush / U-WIN",
     "type": "paraphrased"
   },
   {

@@ -5,7 +5,7 @@ Step 4 of the RAG pipeline: construct a grounded prompt from the
 retrieved chunks and call an LLM to produce a short, source-grounded
 answer.
 
-LLM: Google Gemini API (gemini-1.5-flash)
+LLM: Google Gemini API (gemini-flash-lite-latest)
 Why Gemini: Highly capable, extremely fast, and has a generous free tier.
 Requires a GEMINI_API_KEY environment variable. You can get a free key from:
 https://aistudio.google.com/app/apikey
