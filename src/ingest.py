@@ -160,7 +160,7 @@ def main():
     print(f"Word count range: {min(word_counts)}-{max(word_counts)}, "
           f"avg {sum(word_counts) / len(word_counts):.0f}")
     for c in chunks:
-        flag = "  <-- outside 200-500 band" if not (150 <= c["word_count"] <= 550) else ""
+        flag = "  <-- outside 200-500 band" if not (MIN_WORDS <= c["word_count"] <= MAX_WORDS) else ""
         print(f"  [{c['id']:>2}] {c['word_count']:>4}w  {c['title']}{flag}")
 
 
