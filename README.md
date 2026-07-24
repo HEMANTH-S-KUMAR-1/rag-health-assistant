@@ -65,7 +65,7 @@ Run: `python src/embed_store.py`
 
 ## 3. RAG answer generation (`src/generate.py`)
 
-- LLM: Google Gemini API (`gemini-2.5-flash`, via `google-genai` SDK).
+- LLM: Google Gemini API (`gemini-1.5-flash`, via `google-genai` SDK).
 - The prompt includes: a system instruction constraining the model to
   answer only from the supplied context and say so explicitly if the
   context doesn't contain the answer, plus the user's question and the

@@ -5,7 +5,7 @@ Step 4 of the RAG pipeline: construct a grounded prompt from the
 retrieved chunks and call an LLM to produce a short, source-grounded
 answer.
 
-LLM: Google Gemini API (gemini-2.5-flash)
+LLM: Google Gemini API (gemini-1.5-flash)
 Why Gemini: Highly capable, extremely fast, and has a generous free tier.
 Requires a GEMINI_API_KEY environment variable. You can get a free key from:
 https://aistudio.google.com/app/apikey
@@ -14,7 +14,7 @@ import os
 from google import genai
 from google.genai import types
 
-MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
+MODEL = os.environ.get("GEMINI_MODEL", "gemini-1.5-flash")
 
 SYSTEM_PROMPT = (
     "You are a Q&A assistant that answers questions strictly using the "
