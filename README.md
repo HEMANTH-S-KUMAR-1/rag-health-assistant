@@ -65,7 +65,7 @@ Run: `python src/embed_store.py`
 
 ## 3. RAG answer generation (`src/generate.py`)
 
-- LLM: Claude (Anthropic API, `anthropic` Python SDK).
+- LLM: Google Gemini API (`gemini-2.5-flash`, via `google-genai` SDK).
 - The prompt includes: a system instruction constraining the model to
   answer only from the supplied context and say so explicitly if the
   context doesn't contain the answer, plus the user's question and the
@@ -116,9 +116,9 @@ source .venv/bin/activate
 pip install -r requirements.txt
 
 cp .env.example .env
-# edit .env and set ANTHROPIC_API_KEY=<your key>
+# edit .env and set GEMINI_API_KEY=<your key>
 export $(cat .env | xargs)          # Linux / macOS
-# Windows (PowerShell): $env:ANTHROPIC_API_KEY="<your key>"
+# Windows (PowerShell): $env:GEMINI_API_KEY="<your key>"
 
 python src/ingest.py        # data/raw_page.md -> data/chunks.json
 python src/embed_store.py   # data/chunks.json -> index/embeddings.npz

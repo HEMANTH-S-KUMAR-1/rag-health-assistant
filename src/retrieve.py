@@ -98,10 +98,10 @@ class Retriever:
     def search_with_rerank(self, query: str, top_k: int = 3, rerank_pool: int = 8):
         """
         Two-stage retrieval: retrieve top-N by embeddings, then re-rank
-        with Claude by asking it to score relevance of each chunk.
+        with Gemini by asking it to score relevance of each chunk.
         Falls back to plain search if no API key is set.
         """
-        api_key = os.environ.get("ANTHROPIC_API_KEY")
+        api_key = os.environ.get("GEMINI_API_KEY")
         if not api_key:
             return self.search(query, top_k=top_k)
 
@@ -110,9 +110,11 @@ class Retriever:
 
         # Stage 2: LLM re-ranking
         try:
-            import anthropic
-            client = anthropic.Anthropic(api_key=api_key)
-            model = os.environ.get("ANTHROPIC_MODEL", "claude-haiku-4-5-20251001")
+            from google import genai
+            from google.genai import types
+            
+            client = genai.Client(api_key=api_key)
+            model = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
 
             rerank_prompt = (
                 f"Question: {query}\n\n"
@@ -124,14 +126,17 @@ class Retriever:
                 snippet = r["chunk"]["text"][:300]
                 rerank_prompt += f"Passage {i+1}: {snippet}\n\n"
 
-            response = client.messages.create(
+            response = client.models.generate_content(
                 model=model,
-                max_tokens=100,
-                messages=[{"role": "user", "content": rerank_prompt}],
+                contents=rerank_prompt,
+                config=types.GenerateContentConfig(
+                    max_output_tokens=100,
+                    temperature=0.0,
+                )
             )
 
             # Parse scores from response
-            response_text = response.content[0].text
+            response_text = response.text
             scores_match = re.search(r"\[[\d,\s\.]+\]", response_text)
             if scores_match:
                 import json as json_mod

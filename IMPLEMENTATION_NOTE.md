@@ -39,17 +39,15 @@ and readable by any NumPy installation. This would need to change if the
 corpus grew past a few thousand chunks or needed concurrent serving.
 
 ### LLM and prompt design
-Claude via the Anthropic API. The system prompt does three things
+Google Gemini via the `google-genai` SDK. The system prompt does three things
 explicitly: (1) restricts the model to the supplied context, (2) instructs
 it to say so if the context doesn't contain the answer rather than
 guessing, (3) caps answer length to keep responses "short and clear" as
-required. Each retrieved chunk is labelled with its section title in the
-prompt (`[Source: ...]`) so the model's answer can be checked against a
-named source.
+required. Each retrieved chunk is labelled with its source title.
 
 ### Re-ranking
 An optional two-stage retrieval pipeline: first, retrieve the top-8
-candidates by embedding cosine similarity; then, ask Claude to rate each
+candidates by embedding cosine similarity; then, ask Gemini to rate each
 passage's relevance on a 0–10 scale and re-sort by that score. This
 cross-encoder-style re-ranking improves precision at k=3 without touching
 the embedding layer. Enabled via a `--rerank` CLI flag; falls back to

@@ -5,20 +5,16 @@ Step 4 of the RAG pipeline: construct a grounded prompt from the
 retrieved chunks and call an LLM to produce a short, source-grounded
 answer.
 
-LLM: Claude, via the Anthropic API (anthropic Python SDK).
-Why Claude/Anthropic: a single, well-documented SDK, strong instruction
-following for "answer only from context" constraints, and the assignment
-allows any LLM. Swapping to OpenAI/Gemini/a local model only requires
-rewriting `call_llm()` below - the prompt-construction logic is
-provider-agnostic.
-
-Requires an ANTHROPIC_API_KEY environment variable (see .env.example).
+LLM: Google Gemini API (gemini-2.5-flash)
+Why Gemini: Highly capable, extremely fast, and has a generous free tier.
+Requires a GEMINI_API_KEY environment variable. You can get a free key from:
+https://aistudio.google.com/app/apikey
 """
 import os
+from google import genai
+from google.genai import types
 
-import anthropic
-
-MODEL = os.environ.get("ANTHROPIC_MODEL", "claude-haiku-4-5-20251001")
+MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
 
 SYSTEM_PROMPT = (
     "You are a Q&A assistant that answers questions strictly using the "
@@ -49,36 +45,30 @@ def build_prompt(question: str, retrieved_chunks: list) -> str:
 
 
 def call_llm(question: str, retrieved_chunks: list) -> str:
-    api_key = os.environ.get("ANTHROPIC_API_KEY")
+    api_key = os.environ.get("GEMINI_API_KEY")
     if not api_key:
         raise EnvironmentError(
-            "ANTHROPIC_API_KEY is not set. Copy .env.example to .env, "
-            "fill in your key, and export it (or use a tool like "
-            "python-dotenv / `source .env`) before running the CLI."
+            "GEMINI_API_KEY is not set. Get a free API key from Google AI Studio "
+            "(https://aistudio.google.com/app/apikey), add it to your .env file, "
+            "and export it before running the CLI."
         )
 
-    client = anthropic.Anthropic(api_key=api_key)
+    client = genai.Client(api_key=api_key)
     prompt = build_prompt(question, retrieved_chunks)
 
     try:
-        response = client.messages.create(
+        response = client.models.generate_content(
             model=MODEL,
-            max_tokens=500,
-            system=SYSTEM_PROMPT,
-            messages=[{"role": "user", "content": prompt}],
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                system_instruction=SYSTEM_PROMPT,
+                max_output_tokens=500,
+                temperature=0.0,
+            )
         )
-    except anthropic.AuthenticationError as e:
+    except Exception as e:
         raise RuntimeError(
-            "Anthropic API rejected the key (invalid or expired). "
-            "Check ANTHROPIC_API_KEY in your .env file."
-        ) from e
-    except anthropic.APIConnectionError as e:
-        raise RuntimeError(
-            "Could not reach the Anthropic API. Check your internet connection."
-        ) from e
-    except anthropic.APIStatusError as e:
-        raise RuntimeError(
-            f"Anthropic API returned an error (status {e.status_code}): {e.message}"
+            f"Google Gemini API error: {str(e)}"
         ) from e
 
-    return response.content[0].text
+    return response.text
