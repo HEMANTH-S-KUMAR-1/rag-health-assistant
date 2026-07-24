@@ -67,9 +67,15 @@ for line in lines:
     is_header = False
     for h in headers:
         if cleaned.startswith(h):
+            if h == "References":
+                # Stop processing when reaching the references section
+                break
             out_lines.append(f"\n## {cleaned}\n")
             is_header = True
             break
+            
+    if cleaned.startswith("References"):
+        break
             
     if not is_header:
         out_lines.append(cleaned)
