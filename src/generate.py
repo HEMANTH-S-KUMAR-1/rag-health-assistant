@@ -11,8 +11,7 @@ Requires a GEMINI_API_KEY environment variable. You can get a free key from:
 https://aistudio.google.com/app/apikey
 """
 import os
-from google import genai
-from google.genai import types
+import google.generativeai as genai
 
 MODEL = os.environ.get("GEMINI_MODEL", "gemini-1.5-flash")
 
@@ -53,19 +52,19 @@ def call_llm(question: str, retrieved_chunks: list) -> str:
             "and export it before running the CLI."
         )
 
-    client = genai.Client(api_key=api_key)
+    genai.configure(api_key=api_key)
     prompt = build_prompt(question, retrieved_chunks)
 
     try:
-        response = client.models.generate_content(
-            model=MODEL,
-            contents=prompt,
-            config=types.GenerateContentConfig(
-                system_instruction=SYSTEM_PROMPT,
+        model = genai.GenerativeModel(
+            model_name=MODEL,
+            system_instruction=SYSTEM_PROMPT,
+            generation_config=genai.types.GenerationConfig(
                 max_output_tokens=500,
                 temperature=0.0,
             )
         )
+        response = model.generate_content(prompt)
     except Exception as e:
         raise RuntimeError(
             f"Google Gemini API error: {str(e)}"

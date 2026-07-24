@@ -110,11 +110,10 @@ class Retriever:
 
         # Stage 2: LLM re-ranking
         try:
-            from google import genai
-            from google.genai import types
+            import google.generativeai as genai
             
-            client = genai.Client(api_key=api_key)
-            model = os.environ.get("GEMINI_MODEL", "gemini-1.5-flash")
+            genai.configure(api_key=api_key)
+            model_name = os.environ.get("GEMINI_MODEL", "gemini-1.5-flash")
 
             rerank_prompt = (
                 f"Question: {query}\n\n"
@@ -126,14 +125,14 @@ class Retriever:
                 snippet = r["chunk"]["text"][:300]
                 rerank_prompt += f"Passage {i+1}: {snippet}\n\n"
 
-            response = client.models.generate_content(
-                model=model,
-                contents=rerank_prompt,
-                config=types.GenerateContentConfig(
+            model = genai.GenerativeModel(
+                model_name=model_name,
+                generation_config=genai.types.GenerationConfig(
                     max_output_tokens=100,
                     temperature=0.0,
                 )
             )
+            response = model.generate_content(rerank_prompt)
 
             # Parse scores from response
             response_text = response.text
