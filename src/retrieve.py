@@ -113,7 +113,7 @@ class Retriever:
             import google.generativeai as genai
             
             genai.configure(api_key=api_key)
-            model_name = os.environ.get("GEMINI_MODEL", "gemini-1.5-flash")
+            model_name = os.environ.get("GEMINI_MODEL", "gemini-3.5-flash")
 
             rerank_prompt = (
                 f"Question: {query}\n\n"

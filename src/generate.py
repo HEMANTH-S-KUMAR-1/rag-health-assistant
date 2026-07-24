@@ -13,7 +13,7 @@ https://aistudio.google.com/app/apikey
 import os
 import google.generativeai as genai
 
-MODEL = os.environ.get("GEMINI_MODEL", "gemini-1.5-flash")
+MODEL = os.environ.get("GEMINI_MODEL", "gemini-3.5-flash")
 
 SYSTEM_PROMPT = (
     "You are a Q&A assistant that answers questions strictly using the "
