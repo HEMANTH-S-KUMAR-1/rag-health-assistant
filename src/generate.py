@@ -11,7 +11,8 @@ Requires a GEMINI_API_KEY environment variable. You can get a free key from:
 https://aistudio.google.com/app/apikey
 """
 import os
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 
 MODEL = os.environ.get("GEMINI_MODEL", "gemini-flash-lite-latest")
 
@@ -52,19 +53,19 @@ def call_llm(question: str, retrieved_chunks: list) -> str:
             "and export it before running the CLI."
         )
 
-    genai.configure(api_key=api_key)
+    client = genai.Client(api_key=api_key)
     prompt = build_prompt(question, retrieved_chunks)
 
     try:
-        model = genai.GenerativeModel(
-            model_name=MODEL,
-            system_instruction=SYSTEM_PROMPT,
-            generation_config=genai.types.GenerationConfig(
+        response = client.models.generate_content(
+            model=MODEL,
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                system_instruction=SYSTEM_PROMPT,
                 max_output_tokens=500,
                 temperature=0.0,
             )
         )
-        response = model.generate_content(prompt)
     except Exception as e:
         error_msg = str(e)
         if "429" in error_msg or "Quota exceeded" in error_msg:
