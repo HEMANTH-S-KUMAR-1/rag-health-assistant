@@ -11,7 +11,11 @@ Usage:
     python src/cli.py --question "Compare AB-PMJAY and PM-ABHIM" --rerank
 """
 import argparse
+import os
 import sys
+from dotenv import load_dotenv
+
+load_dotenv()  # Load environment variables from .env file
 
 from generate import call_llm
 from retrieve import Retriever
