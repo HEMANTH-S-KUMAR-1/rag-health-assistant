@@ -66,8 +66,12 @@ def call_llm(question: str, retrieved_chunks: list) -> str:
         )
         response = model.generate_content(prompt)
     except Exception as e:
+        error_msg = str(e)
+        if "429" in error_msg or "Quota exceeded" in error_msg:
+            return "⚠️ **Rate Limit Exceeded:** The free Gemini tier allows 15 requests per minute. Please wait 20-30 seconds and try your question again."
+        
         raise RuntimeError(
-            f"Google Gemini API error: {str(e)}"
+            f"Google Gemini API error: {error_msg}"
         ) from e
 
     return response.text
