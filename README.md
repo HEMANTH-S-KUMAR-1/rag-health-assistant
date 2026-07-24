@@ -84,11 +84,20 @@ A CLI that:
 ```bash
 git clone <this-repo-url>
 cd rag-health-assistant
+
+# create and activate a virtual environment
+python -m venv .venv
+# Linux / macOS:
+source .venv/bin/activate
+# Windows (PowerShell):
+.venv\Scripts\activate
+
 pip install -r requirements.txt
 
 cp .env.example .env
 # edit .env and set ANTHROPIC_API_KEY=<your key>
-export $(cat .env | xargs)
+export $(cat .env | xargs)          # Linux / macOS
+# Windows (PowerShell): $env:ANTHROPIC_API_KEY="<your key>"
 
 python src/ingest.py        # data/raw_page.md -> data/chunks.json
 python src/embed_store.py   # data/chunks.json -> index/*.joblib
