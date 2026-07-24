@@ -1,0 +1,77 @@
+[
+  {
+    "question": "What is AB-PMJAY?",
+    "expected_chunk_title": "Ayushman Bharat: Universal Health Coverage for Every Citizen / Pillar 1: Public Health Insurance Through Ayushman Bharat",
+    "type": "exact"
+  },
+  {
+    "question": "How many Ayushman Arogya Mandirs are functional?",
+    "expected_chunk_title": "Pillar 2: Primary Care Through Ayushman Arogya Mandirs (AAM)",
+    "type": "exact"
+  },
+  {
+    "question": "What is the ABHA health ID?",
+    "expected_chunk_title": "Pillar 3: Pandemic Preparedness Through PM-ABHIM / Pillar 4: Digital Health Ecosystem Through Ayushman Bharat Digital Mission (ABDM)",
+    "type": "exact"
+  },
+  {
+    "question": "How did India respond to COVID-19?",
+    "expected_chunk_title": "COVID-19 and Pandemic Response",
+    "type": "exact"
+  },
+  {
+    "question": "What is India doing about tuberculosis?",
+    "expected_chunk_title": "Eliminating Communicable Diseases",
+    "type": "exact"
+  },
+  {
+    "question": "How many medical colleges were added?",
+    "expected_chunk_title": "Transforming Healthcare Delivery Through Artificial Intelligence / Medical Education and Workforce / Alternative Healthcare (AYUSH)",
+    "type": "exact"
+  },
+  {
+    "question": "What is Mission Indradhanush?",
+    "expected_chunk_title": "Mission Indradhanush and Immunisation",
+    "type": "exact"
+  },
+  {
+    "question": "How does eSanjeevani telemedicine work?",
+    "expected_chunk_title": "Providing Affordable Medicines and Emergency Transport / Reaching People Where They Are: Digital and Last-Mile Health Services",
+    "type": "exact"
+  },
+  {
+    "question": "healthcare coverage for elderly people above 70",
+    "expected_chunk_title": "Ayushman Bharat: Universal Health Coverage for Every Citizen / Pillar 1: Public Health Insurance Through Ayushman Bharat",
+    "type": "paraphrased"
+  },
+  {
+    "question": "government efforts to make medicines cheaper for poor people",
+    "expected_chunk_title": "Providing Affordable Medicines and Emergency Transport / Reaching People Where They Are: Digital and Last-Mile Health Services",
+    "type": "paraphrased"
+  },
+  {
+    "question": "using AI and machine learning to improve diagnosis",
+    "expected_chunk_title": "Transforming Healthcare Delivery Through Artificial Intelligence / Medical Education and Workforce / Alternative Healthcare (AYUSH)",
+    "type": "paraphrased"
+  },
+  {
+    "question": "neighbourhood clinics that screen for diseases and offer free treatment",
+    "expected_chunk_title": "Pillar 2: Primary Care Through Ayushman Arogya Mandirs (AAM)",
+    "type": "paraphrased"
+  },
+  {
+    "question": "child vaccination and immunization drive to reach unvaccinated kids",
+    "expected_chunk_title": "Mission Indradhanush and Immunisation",
+    "type": "paraphrased"
+  },
+  {
+    "question": "mental health telephone helpline counselling service",
+    "expected_chunk_title": "Providing Affordable Medicines and Emergency Transport / Reaching People Where They Are: Digital and Last-Mile Health Services",
+    "type": "paraphrased"
+  },
+  {
+    "question": "What is India's GDP growth rate?",
+    "expected_chunk_title": null,
+    "type": "negative"
+  }
+]

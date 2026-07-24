@@ -83,14 +83,33 @@ def split_long_section(title: str, body: str):
     if buf:
         chunks.append("\n\n".join(buf))
 
-    # Merge a trailing too-small chunk into the previous one, but only if
-    # that doesn't push the combined chunk back over MAX_WORDS - an
-    # undersized final chunk is preferable to an oversized one.
+    # If the trailing chunk is too small, try to balance it with the previous one.
+    # Strategy: merge them and re-split the combined paragraphs more evenly.
     if len(chunks) > 1 and word_count(chunks[-1]) < MIN_WORDS:
         combined_words = word_count(chunks[-2]) + word_count(chunks[-1])
         if combined_words <= MAX_WORDS:
+            # Simple case: they fit together
             chunks[-2] = chunks[-2] + "\n\n" + chunks[-1]
             chunks.pop()
+        else:
+            # Re-split the last two chunks more evenly
+            combined = chunks[-2] + "\n\n" + chunks[-1]
+            paras = [p.strip() for p in combined.split("\n\n") if p.strip()]
+            mid_target = combined_words // 2
+            best_split = 1
+            best_diff = abs(combined_words - MIN_WORDS)
+            running = 0
+            for j, p in enumerate(paras):
+                running += word_count(p)
+                diff = abs(running - mid_target)
+                if diff < best_diff and j < len(paras) - 1:
+                    best_diff = diff
+                    best_split = j + 1
+            left = "\n\n".join(paras[:best_split])
+            right = "\n\n".join(paras[best_split:])
+            if word_count(left) >= MIN_WORDS and word_count(right) >= MIN_WORDS:
+                chunks[-2] = left
+                chunks[-1] = right
 
     return chunks
 

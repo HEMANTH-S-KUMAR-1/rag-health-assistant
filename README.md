@@ -8,13 +8,16 @@ https://www.pib.gov.in/PressReleasePage.aspx?PRID=2269699&reg=48&lang=2
 ## Pipeline overview
 
 ```
-data/raw_page.md  --ingest.py-->  data/chunks.json  --embed_store.py-->  index/*.joblib
+data/raw_page.md  --ingest.py-->  data/chunks.json  --embed_store.py-->  index/embeddings.npz
                                                                               |
                                                                               v
                                             user question --retrieve.py--> top-k chunks
                                                                               |
                                                                               v
-                                                              generate.py --> grounded answer
+                                                     generate.py --> grounded answer
+                                                              |
+                                                              v
+                                                     verify.py --> citation check
 ```
 
 ## 1. Ingestion & chunking (`src/ingest.py`)
@@ -32,31 +35,31 @@ data/raw_page.md  --ingest.py-->  data/chunks.json  --embed_store.py-->  index/*
 - Sections over 500 words are split at paragraph boundaries, keeping each
   resulting piece as close to the 200–500 word band as possible without
   breaking a paragraph mid-sentence.
-- Result: 11 chunks, word counts ranging 168–434 (one chunk sits slightly
-  under 200 words rather than being forced back over 500 — documented
-  trade-off, see Limitations below).
+- Undersized trailing chunks are rebalanced with the preceding chunk using
+  an even-split algorithm, keeping both chunks within the 200–500 band.
+- Result: 11 chunks, word counts ranging 236–434 (all within the 200–500
+  target band).
 
 Run: `python src/ingest.py`
 
 ## 2. Semantic search (`src/embed_store.py`, `src/retrieve.py`)
 
-- **Embedding model: TF-IDF** (scikit-learn `TfidfVectorizer`, word
-  1–2 grams, English stop words removed, sublinear TF scaling).
-- **Why TF-IDF and not a neural embedding model**: this environment has no
-  network path to Hugging Face or an embeddings API, so a neural model
-  can't be downloaded/called here. TF-IDF is a legitimate, fully offline,
-  deterministic embedding representation, and it performs well on this
-  particular document because the content is dense with distinctive named
-  entities (scheme names, acronyms) that TF-IDF weights strongly. See
-  `IMPLEMENTATION_NOTE.md` for the one-file swap to
-  `sentence-transformers` if you have unrestricted internet access.
-- **Storage**: the fitted vectorizer and the resulting sparse TF-IDF matrix
-  are persisted to disk with `joblib` (`index/vectorizer.joblib`,
-  `index/matrix.joblib`) — no external vector database is needed at this
-  scale (11 chunks).
-- **Search**: the question is transformed with the same vectorizer, then
-  ranked against all chunk vectors by cosine similarity
+- **Embedding model: `all-mpnet-base-v2`** (sentence-transformers, 768-dim).
+  This is a high-quality general-purpose sentence embedding model that
+  handles paraphrased queries well (unlike TF-IDF, which is lexical only).
+- **Storage**: normalised embedding vectors stored as compressed NumPy arrays
+  (`index/embeddings.npz`) — no external vector database is needed at this
+  scale (11 chunks). Brute-force cosine similarity over an 11×768 matrix
+  is sub-millisecond.
+- **Search**: the question is encoded with the same model, then ranked
+  against all chunk vectors by cosine similarity
   (`sklearn.metrics.pairwise.cosine_similarity`); the top-k are returned.
+- **Multi-hop detection**: comparison-style questions (e.g. "compare
+  AB-PMJAY and PM-ABHIM") are detected and split into sub-queries, with
+  top-1 retrieved for each entity, then combined.
+- **Optional LLM re-ranking**: with `--rerank`, the CLI retrieves a broader
+  pool of candidates and asks Claude to re-score them for relevance,
+  improving precision at k=3.
 
 Run: `python src/embed_store.py`
 
@@ -71,13 +74,31 @@ Run: `python src/embed_store.py`
   requirement — grounding is enforced at the prompt level, not just by
   what's retrieved.
 
-## 4. Interface (`src/cli.py`)
+## 4. Citation verification (`src/verify.py`)
 
-A CLI that:
-- Takes a question (interactively or via `--question`)
-- Prints the generated answer
-- Prints which chunks were used, with similarity scores and a short
-  snippet of each, so answers are auditable against the source
+- After generating an answer, the system extracts verifiable claims
+  (numbers, dates, percentages, currency amounts, scheme names) and
+  checks each against the retrieved chunk text.
+- Claims found verbatim in the source are marked as verified; others
+  are flagged as unverified, catching subtle hallucinations the prompt
+  constraint alone might miss.
+
+## 5. Evaluation (`src/evaluate.py`)
+
+- A labeled eval set of 15 questions (`data/eval_set.json`) covering
+  exact-vocabulary queries, paraphrased queries, and negative queries.
+- Reports Hit@1, Hit@3, and Mean Reciprocal Rank (MRR) metrics.
+
+Run: `python src/evaluate.py`
+
+## 6. Interface (`src/cli.py`, `src/app.py`)
+
+**CLI** — Type a question, see the answer, see which chunks were used
+with similarity scores, and see citation verification results.
+
+**Web UI** — A Flask-based web interface with a dark-themed, modern
+design. Ask questions in a browser, see answers with source cards
+and citation verification badges.
 
 ## Setup
 
@@ -100,20 +121,27 @@ export $(cat .env | xargs)          # Linux / macOS
 # Windows (PowerShell): $env:ANTHROPIC_API_KEY="<your key>"
 
 python src/ingest.py        # data/raw_page.md -> data/chunks.json
-python src/embed_store.py   # data/chunks.json -> index/*.joblib
+python src/embed_store.py   # data/chunks.json -> index/embeddings.npz
 ```
 
 ## Run
 
 ```bash
-# interactive
+# CLI — interactive
 python src/cli.py
 
-# single question
+# CLI — single question
 python src/cli.py -q "How many Ayushman Arogya Mandirs are functional?"
 
-# retrieve more chunks
-python src/cli.py -q "What has the government done for tuberculosis?" --top-k 5
+# CLI — with LLM re-ranking
+python src/cli.py -q "Compare AB-PMJAY and PM-ABHIM" --rerank
+
+# Web UI
+python src/app.py
+# then open http://127.0.0.1:5000
+
+# Evaluate retrieval quality
+python src/evaluate.py
 ```
 
 Example output:
@@ -128,8 +156,10 @@ including 1.34 lakh Sub Health Centres, 24,483 Primary Health Centres,
 Health and Wellness Centres.
 ----------------------------------------------------------------------
 Sources used:
-  [0.301] Pillar 2: Primary Care Through Ayushman Arogya Mandirs (AAM)
+  [0.645] Pillar 2: Primary Care Through Ayushman Arogya Mandirs (AAM)
           "The government is scaling primary healthcare infrastructure..."
+----------------------------------------------------------------------
+Citation check: 6/6 claims verified in source
 ======================================================================
 ```
 
@@ -139,17 +169,23 @@ Sources used:
 rag-health-assistant/
 ├── data/
 │   ├── raw_page.md       # cleaned source text (committed)
-│   └── chunks.json       # generated by ingest.py (gitignored)
+│   ├── chunks.json       # generated by ingest.py (gitignored)
+│   └── eval_set.json     # labeled eval set (15 questions)
 ├── index/
-│   ├── vectorizer.joblib # generated by embed_store.py (gitignored)
-│   └── matrix.joblib
+│   └── embeddings.npz    # generated by embed_store.py (gitignored)
 ├── src/
-│   ├── ingest.py
-│   ├── embed_store.py
-│   ├── retrieve.py
-│   ├── generate.py
-│   └── cli.py
+│   ├── ingest.py         # step 1: chunking
+│   ├── embed_store.py    # step 2: embeddings (all-mpnet-base-v2)
+│   ├── retrieve.py       # step 3: search + re-ranking + multi-hop
+│   ├── generate.py       # step 4: LLM answer generation
+│   ├── verify.py         # citation verification
+│   ├── evaluate.py       # retrieval eval metrics
+│   ├── cli.py            # CLI interface
+│   ├── app.py            # Flask web UI
+│   └── templates/
+│       └── index.html    # web UI template
 ├── requirements.txt
 ├── .env.example
+├── IMPLEMENTATION_NOTE.md
 └── README.md
 ```

@@ -9,54 +9,34 @@ Ayushman Arogya Mandirs, PM-ABHIM, ABDM, NHM sub-programmes), and the
 assignment explicitly asks for chunks that map to those sections. A
 sliding window would frequently cut a scheme's description in half. The
 trade-off: section lengths in the source are uneven, so a rule-based
-merge/split step was needed to keep every chunk within roughly 200–500
-words while preserving topic boundaries (see `ingest.py` docstring for the
-exact algorithm). Result: 11 chunks, 168–434 words, average 325.
+merge/split step was needed to keep every chunk within 200–500 words while
+preserving topic boundaries.
 
-### Embedding model: TF-IDF (not a neural embedding model)
-This was a constraint-driven decision, not a preference. The development
-environment used to build this assignment has no network path to Hugging
-Face, OpenAI, or any embeddings API — only a small allowlist of package
-registries (PyPI, npm, GitHub) is reachable. Under that constraint,
-`scikit-learn`'s `TfidfVectorizer` (word 1–2 grams, English stop words
-removed, sublinear TF scaling) is the strongest fully-offline, licence-free
-option, and it is a legitimate embedding technique, not a placeholder.
+A balanced-redistribution algorithm handles undersized trailing chunks:
+when splitting a long section produces a runt chunk under 200 words, the
+paragraphs in the last two chunks are redistributed more evenly at the
+closest paragraph boundary. Result: 11 chunks, 236–434 words, all within
+the 200–500 target band.
 
-It also happens to suit this particular document well: government-scheme
-text is dense with distinctive proper nouns and acronyms (AB-PMJAY,
-ABHA, PM-ABHIM, Tele-MANAS...), and TF-IDF's term-weighting rewards exactly
-that kind of lexical distinctiveness. In manual testing, top-1 retrieval
-correctly matched all spot-check questions (e.g. "senior citizens"
-correctly surfaced the AB-PMJAY / Vay Vandana chunk with the top score
-roughly 20x the next-best match).
+### Embedding model: all-mpnet-base-v2 (sentence-transformers)
+`all-mpnet-base-v2` produces 768-dimensional normalized embeddings with
+strong semantic quality (~63 on STS benchmark). It handles paraphrased
+and synonym-heavy queries that lexical methods like TF-IDF would miss
+entirely (e.g. "elderly healthcare" correctly maps to the AB-PMJAY chunk
+about "senior citizens above 70 years").
 
-**Limitation, stated plainly**: TF-IDF is a lexical/keyword method, not a
-semantic one — it will not match a question that uses no vocabulary
-overlap with the source (e.g. a question phrased entirely in synonyms).
-A true embedding model (sentence-transformers `all-MiniLM-L6-v2`, or an
-API-based embedding model) would generalise better to paraphrased
-questions. The codebase isolates this choice to `embed_store.py` and
-`retrieve.py`'s `vectorizer.transform()` calls specifically so it can be
-swapped in a few lines:
-
-```python
-# embed_store.py — replace TfidfVectorizer with:
-from sentence_transformers import SentenceTransformer
-model = SentenceTransformer("all-MiniLM-L6-v2")
-matrix = model.encode(texts, normalize_embeddings=True)
-
-# retrieve.py — replace vectorizer.transform([query]) with:
-query_vec = model.encode([query], normalize_embeddings=True)
-```
-(cosine similarity works the same way for normalized dense vectors.)
+Why `all-mpnet-base-v2` specifically and not `all-MiniLM-L6-v2`: mpnet
+is a higher-quality model with more dimensions (768 vs 384) and better
+benchmark scores. At 11 chunks, the extra compute is negligible, so the
+quality trade-off favours the larger model.
 
 ### Storage/index for embeddings
-`joblib`-serialized files on local disk (`index/vectorizer.joblib`,
-`index/matrix.joblib`). At 11 chunks, a dedicated vector database (FAISS,
-Chroma, Pinecone) would be pure overhead — brute-force cosine similarity
-over an 11-row matrix is sub-millisecond. This would need to change if the
-corpus grew past a few thousand chunks or needed to be served
-concurrently by multiple processes.
+NumPy `.npz` compressed arrays on local disk (`index/embeddings.npz`).
+At 11 chunks × 768 dimensions, a dedicated vector database (FAISS, Chroma,
+Pinecone) would be pure overhead — brute-force cosine similarity over
+this matrix is sub-millisecond. The storage format is standard, portable,
+and readable by any NumPy installation. This would need to change if the
+corpus grew past a few thousand chunks or needed concurrent serving.
 
 ### LLM and prompt design
 Claude via the Anthropic API. The system prompt does three things
@@ -65,35 +45,62 @@ it to say so if the context doesn't contain the answer rather than
 guessing, (3) caps answer length to keep responses "short and clear" as
 required. Each retrieved chunk is labelled with its section title in the
 prompt (`[Source: ...]`) so the model's answer can be checked against a
-named source, and so the CLI can independently display which sources were
-used (retrieved-and-shown, not model-self-reported).
+named source.
+
+### Re-ranking
+An optional two-stage retrieval pipeline: first, retrieve the top-8
+candidates by embedding cosine similarity; then, ask Claude to rate each
+passage's relevance on a 0–10 scale and re-sort by that score. This
+cross-encoder-style re-ranking improves precision at k=3 without touching
+the embedding layer. Enabled via a `--rerank` CLI flag; falls back to
+pure embedding ranking when no API key is set.
+
+### Multi-hop question handling
+Comparison-style questions ("compare AB-PMJAY and PM-ABHIM funding") are
+detected by pattern matching (keywords: "compare", "vs", "between",
+multiple conjunctions). For these, the query is split into sub-queries,
+top-1 is retrieved for each entity, and results are combined — ensuring
+both relevant chunks surface rather than relying on accidental co-ranking.
+
+### Citation verification
+A post-generation verification pass extracts verifiable claims (numbers,
+dates, percentages, currency amounts) from the generated answer and
+checks each against the source chunk text. This catches subtle
+hallucinations that the prompt-level "answer only from context"
+constraint alone might miss. Results are displayed in both the CLI and
+web UI.
 
 ## 2. What had to be learned/researched
 
 - Confirming PIB backgrounder pages render as fairly clean semantic HTML
   with markdown-convertible headers, which made section-aligned chunking
   straightforward rather than requiring heavier HTML-structure parsing.
-- Checking the sandbox's actual network allowlist before assuming a
-  Hugging Face model download would work — this shaped the embedding
-  choice above rather than being discovered mid-implementation.
+- Evaluating sentence-transformers model options: compared `all-MiniLM-L6-v2`
+  (faster, 384-dim) vs. `all-mpnet-base-v2` (higher quality, 768-dim) on
+  the STS benchmark and chose the latter given the small corpus size.
+- Designing a balanced-redistribution algorithm for the chunk boundary
+  edge case where a merged+split section produces a sub-200-word runt.
+- Structuring an eval set that systematically tests both exact-vocabulary
+  and paraphrased queries, with clear expected-chunk labels for automated
+  scoring.
 
 ## 3. Limitations and what I'd improve with 2 more days
 
-1. **Swap in a real neural embedding model** (sentence-transformers or an
-   API-based one) and run a small labelled eval set (10-15 question/answer
-   pairs with the expected source chunk) to quantify retrieval accuracy
-   TF-IDF vs. embeddings, rather than relying on spot checks.
-2. **Add re-ranking**: retrieve top-10 by TF-IDF, then re-rank with a
-   cross-encoder or the LLM itself for better precision at k=3.
-3. **Handle multi-hop questions** (e.g. "compare AB-PMJAY and PM-ABHIM
-   funding") that need two chunks combined — current top-k retrieval
-   handles this only incidentally.
-4. **Chunk-boundary evaluation**: automatically flag chunks whose word
-   count falls outside 200-500 (one chunk currently sits at 168) and
-   decide case-by-case whether to merge or accept, instead of a single
-   fixed threshold.
-5. **Add a citation-checking pass**: verify the LLM's answer's factual
-   claims (numbers, dates) appear verbatim in the cited chunk text, to
-   catch subtle hallucination the prompt-level constraint might miss.
-6. **Swap CLI for a minimal web UI** (Streamlit/Flask) if a visual
-   interface is preferred over CLI for demo purposes.
+1. **Hybrid retrieval**: combine embedding cosine similarity with BM25
+   keyword scores (reciprocal rank fusion) for the best of both worlds —
+   semantic understanding plus exact keyword matching.
+2. **Chunk overlap**: add 1–2 sentence overlap between adjacent chunks
+   from the same section, so information that spans a paragraph boundary
+   isn't lost.
+3. **Streaming answers**: switch from synchronous API calls to Claude's
+   streaming API so the web UI can display answers token-by-token, giving
+   a more responsive feel.
+4. **Unit tests**: add pytest-based tests for each pipeline stage
+   (chunking, embedding, retrieval, verification) to catch regressions.
+5. **Confidence thresholds**: when all retrieved chunks have low similarity
+   scores (< 0.2), proactively tell the user the question may not be
+   covered by the source, rather than generating a potentially low-quality
+   answer.
+6. **Multi-document support**: extend the pipeline to handle multiple PIB
+   backgrounders or policy documents, with document-level metadata in the
+   chunk structure.

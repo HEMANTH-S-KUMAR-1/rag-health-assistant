@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RAG Q&A — India's Health Transformation</title>
+    <meta name="description" content="Ask questions about India's health transformation using RAG-powered Q&A grounded in PIB data.">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --bg-primary: #0f1117;
+            --bg-secondary: #1a1d29;
+            --bg-card: rgba(26, 29, 41, 0.8);
+            --border: rgba(255, 255, 255, 0.08);
+            --text-primary: #e8eaed;
+            --text-secondary: #9aa0a6;
+            --accent: #6c5ce7;
+            --accent-glow: rgba(108, 92, 231, 0.3);
+            --success: #00b894;
+            --warning: #fdcb6e;
+            --error: #e17055;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container {
+            max-width: 800px;
+            width: 100%;
+            padding: 2rem 1.5rem;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        header h1 {
+            font-size: 1.75rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #6c5ce7, #a29bfe, #74b9ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+        }
+
+        header p {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .search-box {
+            position: relative;
+            margin-bottom: 2rem;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 1rem 1.25rem;
+            padding-right: 5rem;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            color: var(--text-primary);
+            font-size: 1rem;
+            font-family: inherit;
+            outline: none;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+
+        .search-box input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+
+        .search-box input::placeholder {
+            color: var(--text-secondary);
+        }
+
+        .search-box button {
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            padding: 0.6rem 1.2rem;
+            background: var(--accent);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-family: inherit;
+            font-weight: 600;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: transform 0.15s, opacity 0.3s;
+        }
+
+        .search-box button:hover { opacity: 0.9; transform: translateY(-50%) scale(1.02); }
+        .search-box button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-secondary);
+            display: none;
+        }
+
+        .loading.active { display: block; }
+
+        .loading .spinner {
+            width: 32px; height: 32px;
+            border: 3px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        #result { display: none; }
+        #result.active { display: block; }
+
+        .answer-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            backdrop-filter: blur(20px);
+        }
+
+        .answer-card .label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--accent);
+            margin-bottom: 0.75rem;
+        }
+
+        .answer-card .answer-text {
+            font-size: 1rem;
+            line-height: 1.7;
+            color: var(--text-primary);
+        }
+
+        .citations-bar {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border);
+            font-size: 0.8rem;
+        }
+
+        .citations-bar .badge {
+            padding: 0.2rem 0.6rem;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 0.75rem;
+        }
+
+        .badge.verified { background: rgba(0,184,148,0.15); color: var(--success); }
+        .badge.unverified { background: rgba(225,112,85,0.15); color: var(--error); }
+
+        .sources-section .label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--text-secondary);
+            margin-bottom: 0.75rem;
+        }
+
+        .source-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 1rem 1.25rem;
+            margin-bottom: 0.75rem;
+            transition: border-color 0.2s;
+        }
+
+        .source-card:hover { border-color: var(--accent); }
+
+        .source-card .source-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .source-card .source-title {
+            font-weight: 600;
+            font-size: 0.85rem;
+            color: var(--text-primary);
+        }
+
+        .source-card .source-score {
+            font-size: 0.75rem;
+            color: var(--accent);
+            font-weight: 600;
+        }
+
+        .source-card .source-snippet {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        .error-msg {
+            background: rgba(225,112,85,0.1);
+            border: 1px solid rgba(225,112,85,0.3);
+            border-radius: 10px;
+            padding: 1rem;
+            color: var(--error);
+            display: none;
+            margin-bottom: 1rem;
+        }
+
+        .error-msg.active { display: block; }
+
+        footer {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>India's Health Transformation — Q&A</h1>
+            <p>Ask questions grounded in the PIB backgrounder document. Powered by RAG + Claude.</p>
+        </header>
+
+        <div class="search-box">
+            <input type="text" id="questionInput" placeholder="Ask a question about India's health policies..."
+                   autofocus autocomplete="off">
+            <button id="askBtn" onclick="askQuestion()">Ask</button>
+        </div>
+
+        <div class="error-msg" id="errorMsg"></div>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>Retrieving context and generating answer...</p>
+        </div>
+
+        <div id="result">
+            <div class="answer-card">
+                <div class="label">Answer</div>
+                <div class="answer-text" id="answerText"></div>
+                <div class="citations-bar" id="citationsBar"></div>
+            </div>
+            <div class="sources-section">
+                <div class="label">Retrieved Sources</div>
+                <div id="sourcesList"></div>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        RAG Q&A Assistant · Source: PIB Backgrounder on India's Health Transformation
+    </footer>
+
+    <script>
+        const input = document.getElementById('questionInput');
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') askQuestion();
+        });
+
+        async function askQuestion() {
+            const question = input.value.trim();
+            if (!question) return;
+
+            const btn = document.getElementById('askBtn');
+            const loading = document.getElementById('loading');
+            const result = document.getElementById('result');
+            const errorMsg = document.getElementById('errorMsg');
+
+            btn.disabled = true;
+            loading.classList.add('active');
+            result.classList.remove('active');
+            errorMsg.classList.remove('active');
+
+            try {
+                const res = await fetch('/ask', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ question }),
+                });
+                const data = await res.json();
+
+                if (data.error) {
+                    errorMsg.textContent = data.error;
+                    errorMsg.classList.add('active');
+                    return;
+                }
+
+                document.getElementById('answerText').textContent = data.answer;
+
+                // Citations
+                const citBar = document.getElementById('citationsBar');
+                citBar.innerHTML = '';
+                if (data.citations && data.citations.total > 0) {
+                    const v = data.citations.verified.length;
+                    const t = data.citations.total;
+                    citBar.innerHTML = `
+                        <span class="badge verified">✓ ${v} verified</span>
+                        ${data.citations.unverified.length > 0
+                            ? `<span class="badge unverified">⚠ ${data.citations.unverified.length} unverified</span>`
+                            : ''}
+                        <span style="color: var(--text-secondary)">${v}/${t} claims found in source text</span>
+                    `;
+                }
+
+                // Sources
+                const sourcesList = document.getElementById('sourcesList');
+                sourcesList.innerHTML = '';
+                data.sources.forEach(s => {
+                    sourcesList.innerHTML += `
+                        <div class="source-card">
+                            <div class="source-header">
+                                <span class="source-title">${s.title}</span>
+                                <span class="source-score">${s.score.toFixed(3)}</span>
+                            </div>
+                            <div class="source-snippet">"${s.snippet}..."</div>
+                        </div>
+                    `;
+                });
+
+                result.classList.add('active');
+            } catch (err) {
+                errorMsg.textContent = 'Network error. Check your connection.';
+                errorMsg.classList.add('active');
+            } finally {
+                btn.disabled = false;
+                loading.classList.remove('active');
+            }
+        }
+    </script>
+</body>
+</html>

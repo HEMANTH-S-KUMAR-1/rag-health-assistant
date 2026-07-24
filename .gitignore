@@ -7,3 +7,4 @@ venv/
 # generated artifacts (recreated by ingest.py / embed_store.py)
 data/chunks.json
 index/*.joblib
+index/*.npz
