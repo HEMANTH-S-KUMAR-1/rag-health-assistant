@@ -60,10 +60,25 @@ def call_llm(question: str, retrieved_chunks: list) -> str:
     client = anthropic.Anthropic(api_key=api_key)
     prompt = build_prompt(question, retrieved_chunks)
 
-    response = client.messages.create(
-        model=MODEL,
-        max_tokens=500,
-        system=SYSTEM_PROMPT,
-        messages=[{"role": "user", "content": prompt}],
-    )
+    try:
+        response = client.messages.create(
+            model=MODEL,
+            max_tokens=500,
+            system=SYSTEM_PROMPT,
+            messages=[{"role": "user", "content": prompt}],
+        )
+    except anthropic.AuthenticationError as e:
+        raise RuntimeError(
+            "Anthropic API rejected the key (invalid or expired). "
+            "Check ANTHROPIC_API_KEY in your .env file."
+        ) from e
+    except anthropic.APIConnectionError as e:
+        raise RuntimeError(
+            "Could not reach the Anthropic API. Check your internet connection."
+        ) from e
+    except anthropic.APIStatusError as e:
+        raise RuntimeError(
+            f"Anthropic API returned an error (status {e.status_code}): {e.message}"
+        ) from e
+
     return response.content[0].text

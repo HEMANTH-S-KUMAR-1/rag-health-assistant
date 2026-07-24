@@ -51,7 +51,7 @@ def main():
     if args.question:
         try:
             answer, results = answer_question(retriever, args.question, args.top_k)
-        except EnvironmentError as e:
+        except (EnvironmentError, RuntimeError) as e:
             print(f"Error: {e}", file=sys.stderr)
             sys.exit(1)
         print_answer(args.question, answer, results)
@@ -71,7 +71,7 @@ def main():
             break
         try:
             answer, results = answer_question(retriever, question, args.top_k)
-        except EnvironmentError as e:
+        except (EnvironmentError, RuntimeError) as e:
             print(f"Error: {e}", file=sys.stderr)
             continue
         print_answer(question, answer, results)
