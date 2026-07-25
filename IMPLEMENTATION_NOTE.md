@@ -27,7 +27,7 @@ about "senior citizens above 70 years").
 
 Why `all-mpnet-base-v2` specifically and not `all-MiniLM-L6-v2`: mpnet
 is a higher-quality model with more dimensions (768 vs 384) and better
-benchmark scores. At 11 chunks, the extra compute is negligible, so the
+benchmark scores. At 19 chunks, the extra compute is negligible, so the
 quality trade-off favours the larger model.
 
 ### Storage/index for embeddings
