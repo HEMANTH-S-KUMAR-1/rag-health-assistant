@@ -7,9 +7,9 @@ persist an index to disk.
 Embedding model: sentence-transformers/all-mpnet-base-v2 (768-dim).
 Why all-mpnet-base-v2 and not all-MiniLM-L6-v2: mpnet has higher
 semantic quality (scores ~63 on STS benchmark vs ~59 for MiniLM), and
-at 11 chunks the extra compute is negligible.
+at 19 chunks the extra compute is negligible.
 
-Storage: NumPy .npz compressed arrays on local disk. At 11 chunks,
+Storage: NumPy .npz compressed arrays on local disk. At 19 chunks,
 a dedicated vector database (FAISS, Chroma, Pinecone) is overhead.
 
 Usage:

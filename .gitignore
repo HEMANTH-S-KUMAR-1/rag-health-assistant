@@ -4,7 +4,5 @@ __pycache__/
 .venv/
 venv/
 
-# generated artifacts (recreated by ingest.py / embed_store.py)
-data/chunks.json
+# stale TF-IDF artifacts (not used by current pipeline)
 index/*.joblib
-index/*.npz

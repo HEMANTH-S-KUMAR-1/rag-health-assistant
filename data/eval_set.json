@@ -6,12 +6,12 @@
   },
   {
     "question": "How many Ayushman Arogya Mandirs are functional?",
-    "expected_chunk_title": "Pillar 2: Primary Care Through Ayushman Arogya Mandirs (AAM)",
+    "expected_chunk_title": "Ayushman App / Pillar 2: Primary Care Through Ayushman Arogya Mandirs (AAM)",
     "type": "exact"
   },
   {
     "question": "What is the ABHA health ID?",
-    "expected_chunk_title": "Pillar 3: Pandemic Preparedness Through PM-ABHIM / Pillar 4: Digital Health Ecosystem Through Ayushman Bharat Digital Mission (ABDM)",
+    "expected_chunk_title": "Pillar 4: Digital Health Ecosystem Through Ayushman Bharat Digital Mission (ABDM)",
     "type": "exact"
   },
   {
@@ -26,7 +26,7 @@
   },
   {
     "question": "How many medical colleges were added?",
-    "expected_chunk_title": "Transforming Healthcare Delivery Through Artificial Intelligence / Medical Education and Workforce / Alternative Healthcare (AYUSH)",
+    "expected_chunk_title": "Medical Education and Workforce / Alternative Healthcare",
     "type": "exact"
   },
   {
@@ -36,7 +36,7 @@
   },
   {
     "question": "How does eSanjeevani telemedicine work?",
-    "expected_chunk_title": "Providing Affordable Medicines and Emergency Transport / Reaching People Where They Are: Digital and Last-Mile Health Services",
+    "expected_chunk_title": "Reaching People Where They Are: Digital and Last-Mile Health Services",
     "type": "exact"
   },
   {
@@ -46,12 +46,12 @@
   },
   {
     "question": "government efforts to make medicines cheaper for poor people",
-    "expected_chunk_title": "Providing Affordable Medicines and Emergency Transport / Reaching People Where They Are: Digital and Last-Mile Health Services",
+    "expected_chunk_title": "Providing Affordable Medicines and Emergency Transport",
     "type": "paraphrased"
   },
   {
     "question": "using AI and machine learning to improve diagnosis",
-    "expected_chunk_title": "Transforming Healthcare Delivery Through Artificial Intelligence / Medical Education and Workforce / Alternative Healthcare (AYUSH)",
+    "expected_chunk_title": "Transforming Healthcare Delivery Through Artificial Intelligence",
     "type": "paraphrased"
   },
   {
@@ -66,7 +66,7 @@
   },
   {
     "question": "mental health telephone helpline counselling service",
-    "expected_chunk_title": "Providing Affordable Medicines and Emergency Transport / Reaching People Where They Are: Digital and Last-Mile Health Services",
+    "expected_chunk_title": "Reaching People Where They Are: Digital and Last-Mile Health Services",
     "type": "paraphrased"
   },
   {
